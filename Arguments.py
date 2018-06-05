@@ -10,7 +10,8 @@ class Arguments:
 	# self.U eh o upperBound em Y
 	# self.C eh o centro em Y
 	# self.L eh o lowerBound em Y
-	def __init__(self, X, value, patternSet, targetSet):
+
+	def fitX(self, X, value, patternSet, targetSet):
 		self.X = X
 		self.value = value
 		# print ("value",value)
@@ -38,7 +39,32 @@ class Arguments:
 		self.C = float(uSet)
 		self.U = uSet + skewU * math.sqrt(-2*sx/nU*math.log(math.pow(10,-20)))
 		self.L = uSet + skewL * math.sqrt(-2*sx/nL*math.log(math.pow(10,-20)))
-		
+	
+	def fitY(self, Y):
+		collection = Y
+		maxValue = max(collection)
+		print ("max", maxValue)
+		minValue = min(collection)
+		print ("min", minValue)
+		uSet = float(minValue + maxValue)/2
+		print( "uset",uSet)
+		sx = np.var(collection)
+		print( "sx",sx)
+		nU = len( collection[collection>uSet] )
+		print("nu",nU)
+		nL = len( collection[collection<uSet] )
+		print("nl",nL)
+		if (nU == 0 and nL == 0):
+			nU = 1
+			nL = 1
+		skewU = nU/float(nU+nL)
+		skewL = nL/float(nU+nL)
+
+
+		self.C = float(uSet)
+		self.U = uSet + skewU * math.sqrt(-2*sx/nU*math.log(math.pow(10,-20)))
+		self.L = uSet + skewL * math.sqrt(-2*sx/nL*math.log(math.pow(10,-20)))
+
 	def calculate(x):
 		ret = 0
 		if(self.L <= x and x <= self.C):
