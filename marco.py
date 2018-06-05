@@ -54,19 +54,26 @@ def makeCOBmat(possibleDataBaseValues):
 	return cobMat
 
 def makeFuzzyProbabilisticFunction(possibleDataBaseValues, patternSet, targetSet):
-	fpf = []
+	fpfX = []
 	possibleDataBaseValuesDataFrame = pd.DataFrame(possibleDataBaseValues).T 
 	#print("df",possibleDataBaseValuesDataFrame)
 	possibleDataBaseValuesDataFrame.columns = patternSet.axes[1]
 	#print("ndf",possibleDataBaseValuesDataFrame)
 
+	
 	for label in possibleDataBaseValuesDataFrame.axes[1]:
-		xfpf = []
+		labelFPF = []
 		for val in possibleDataBaseValuesDataFrame[label].values[0]:
-			xfpf.append( Arguments.Arguments(label,val,patternSet,targetSet) )
-		fpf.append(xfpf)
+			args = Arguments.Arguments()
+			args.fitX(label,val,patternSet,targetSet)
+			labelFPF.append( args )
+		fpfX.append(labelFPF)
 	#print("makeFPF",fpf)
-	return fpf
+
+	fpfY = Arguments.Arguments()
+	fpfY.fitY(targetSet)
+
+	return (fpfX,fpfY)
 
 
 def path():
@@ -78,8 +85,9 @@ def path():
 		cobMat = makeCOBmat(possibleDataBaseValues)
 		# for i in cobMat:
 		# 	print (i)
-		fuzzyProbabilisticFunction = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
-		print(fuzzyProbabilisticFunction[0][0])
+		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
+		print (fpfX, len(fpfX), len(possibleDataBaseValues))
+		print (fpfY)
 
 
 path()
