@@ -1,5 +1,6 @@
 import pandas as pd 
 #from scipy.io import arff 
+from copy import deepcopy
 import math
 import numpy as np
 import itertools
@@ -49,6 +50,7 @@ def getPossibleValues(patterns):
 	return possibleDataBaseValuesArray
 
 def makeCOBmat(possibleDataBaseValues):
+
 	possibleList = possibleDataBaseValues.tolist()
 	cobMat = itertools.product(*possibleList)
 	return cobMat
@@ -75,19 +77,29 @@ def makeFuzzyProbabilisticFunction(possibleDataBaseValues, patternSet, targetSet
 
 	return (fpfX,fpfY)
 
+def combine(cobMat,virtualValues):
+	rawData = itertools.product(cobMat,virtualValues)
+	return rawData
 
 def path():
+	print("START")
 	filenames  = ["test.csv"]
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
 		possibleDataBaseValues = getPossibleValues(db_set)
-		#print( possibleDataBaseValues )
+		print( possibleDataBaseValues )
+
 		cobMat = makeCOBmat(possibleDataBaseValues)
-		# for i in cobMat:
-		# 	print (i)
+		for i in deepcopy(cobMat):
+			print (i)
+
 		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
 		print (fpfX, len(fpfX), len(possibleDataBaseValues))
 		print (fpfY)
+
+		rawData = combine(cobMat,[0,0.1,0.2,0.4])
+		for i in deepcopy(rawData):
+			print (i)
 
 
 path()
