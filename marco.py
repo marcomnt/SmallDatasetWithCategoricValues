@@ -5,6 +5,7 @@ import math
 import numpy as np
 import itertools
 import Arguments
+import random
 
 def unWrapper (filename):
 	#opens  arff files and transform to dataFrame
@@ -81,6 +82,33 @@ def combine(cobMat,virtualValues):
 	rawData = itertools.product(cobMat,virtualValues)
 	return rawData
 
+def makeVirtualValues( probFuzzyArgs , m):
+	random.seed()
+	virtualValues = []
+
+	
+
+	for i in range(m):
+		certified = False
+		while not certified:
+			print("Lower", probFuzzyArgs.L, "Upper", probFuzzyArgs.U)
+			vx = random.uniform( probFuzzyArgs.L , probFuzzyArgs.U)
+			print( "vx", vx)
+			value = probFuzzyArgs.calculate(vx)
+			print( "value", value)
+			rs = random.uniform(0.0,1.0)
+			print("rs", rs)
+			if value>rs:
+				certified = True
+
+		print("\n VEIO UM \n")
+		virtualValues.append(vx)
+
+	return virtualValues
+			
+
+
+
 def path():
 	print("START")
 	filenames  = ["test.csv"]
@@ -94,12 +122,17 @@ def path():
 			print (i)
 
 		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
-		print (fpfX, len(fpfX), len(possibleDataBaseValues))
-		print (fpfY)
+		#print (fpfX, len(fpfX), len(possibleDataBaseValues))
+		#print (fpfY)
 
-		rawData = combine(cobMat,[0,0.1,0.2,0.4])
+		virtualValues = makeVirtualValues( fpfY, m = 5)
+		print(virtualValues)
+
+		rawData = combine(cobMat,virtualValues)
 		for i in deepcopy(rawData):
 			print (i)
+
+
 
 
 path()
