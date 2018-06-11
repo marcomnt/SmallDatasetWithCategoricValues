@@ -63,7 +63,6 @@ def makeFuzzyProbabilisticFunction(possibleDataBaseValues, patternSet, targetSet
 	possibleDataBaseValuesDataFrame.columns = patternSet.axes[1]
 	#print("ndf",possibleDataBaseValuesDataFrame)
 
-	
 	for label in possibleDataBaseValuesDataFrame.axes[1]:
 		labelFPF = []
 		for val in possibleDataBaseValuesDataFrame[label].values[0]:
@@ -86,26 +85,60 @@ def makeVirtualValues( probFuzzyArgs , m):
 	random.seed()
 	virtualValues = []
 
-	
-
 	for i in range(m):
 		certified = False
 		while not certified:
-			print("Lower", probFuzzyArgs.L, "Upper", probFuzzyArgs.U)
+			# print("Lower", probFuzzyArgs.L, "Upper", probFuzzyArgs.U)
 			vx = random.uniform( probFuzzyArgs.L , probFuzzyArgs.U)
-			print( "vx", vx)
+			# print( "vx", vx)
 			value = probFuzzyArgs.calculate(vx)
-			print( "value", value)
+			# print( "value", value)
 			rs = random.uniform(0.0,1.0)
-			print("rs", rs)
+			# print("rs", rs)
 			if value>rs:
 				certified = True
 
-		print("\n VEIO UM \n")
+		# print("\n VEIO UM \n")
 		virtualValues.append(vx)
 
 	return virtualValues
 			
+def probabilityCalculus( data , probFuzzyArgs):
+	rawDataProb = []
+
+	for line in data:
+		mult = 1
+		pattern, target = line[0], line[1]
+		sizePattern = len(pattern)
+		for index in range(sizePattern):
+			# print( "Index", index)
+			fuzzy = searchValue(pattern[index], probFuzzyArgs, index)
+			# print("Lower Bound", fuzzy.L)
+			# print("Center", fuzzy.C)
+			# print("Upper Bound", fuzzy.U)
+			# print("Target", target)
+			# print("Calculate", fuzzy.calculate(target))
+			mult = mult * fuzzy.calculate(target)
+
+		if(sizePattern == 0):
+			proba = 0
+		else:
+			proba = math.pow(mult,1/sizePattern )
+
+		rawDataProbLine = list(pattern)
+		rawDataProbLine.append(target)
+		rawDataProbLine.append(proba)
+		rawDataProb.append(rawDataProbLine)
+
+
+	return rawDataProb
+
+def searchValue(value, probFuzzyArgs, index):
+	for arg in probFuzzyArgs[index]:
+		if (arg.value==value):
+			return arg
+	print("ERRO: valor nao encontrado")
+	return 0
 
 
 def alphaCut(patternSet, targetSet, probabilities, alpha):
@@ -116,31 +149,42 @@ def alphaCut(patternSet, targetSet, probabilities, alpha):
 			indexes.append(i)
 
 	return (patternSet[indexes,:],targetSet[indexes])
-	
+
 def path():
 	print("START")
 	filenames  = ["test.csv"]
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
 		possibleDataBaseValues = getPossibleValues(db_set)
-		print( possibleDataBaseValues )
+		# print( possibleDataBaseValues )
 
 		cobMat = makeCOBmat(possibleDataBaseValues)
-		for i in deepcopy(cobMat):
-			print (i)
+		# for i in deepcopy(cobMat):
+		# 	print (i)
 
 		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
 		#print (fpfX, len(fpfX), len(possibleDataBaseValues))
 		#print (fpfY)
 
 		virtualValues = makeVirtualValues( fpfY, m = 5)
-		print(virtualValues)
+		# print(virtualValues)
 
 		rawData = combine(cobMat,virtualValues)
-		for i in deepcopy(rawData):
-			print (i)
 
+		# for i in deepcopy(rawData):
+		# 	print (i)
 
+		rawDataProb = probabilityCalculus(rawData, fpfX)
+		
+		df = pd.DataFrame(rawDataProb)
+		print ("RAW\n",df.values)
+		print("------------")
+		sizeDf = df.shape[1]
+		patternSet = df.iloc[:,0:sizeDf-2]
+		targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
+		probabilities = df.iloc[:,sizeDf-1:sizeDf]
 
+		newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.4)
+		print(newPattern,"\n",newTargets)
 
 path()
