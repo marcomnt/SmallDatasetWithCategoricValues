@@ -14,31 +14,33 @@ class Arguments:
 	def fitX(self, X, value, patternSet, targetSet):
 		self.X = X
 		self.value = value
-		# print ("value",value)
+		print ("value",value)
 		collection = targetSet[ patternSet[X]==value ]
-		# print ("collection",collection)
+		print ("collection\n",collection)
 		maxValue = max(collection)
-		# print ("max", maxValue)
+		print ("max", maxValue)
 		minValue = min(collection)
-		# print ("min", minValue)
+		print ("min", minValue)
 		uSet = float(minValue + maxValue)/2
-		# print( "uset",uSet)
+		print( "uset",uSet)
 		sx = np.var(collection)
-		# print( "sx",sx)
+		print( "sx",sx)
 		nU = len( collection[collection>uSet] )
-		# print("nu",nU)
+		print("nu",nU)
 		nL = len( collection[collection<uSet] )
-		# print("nl",nL)
+		print("nl",nL)
 		if (nU == 0 and nL == 0):
 			nU = 1
 			nL = 1
 		skewU = nU/float(nU+nL)
 		skewL = nL/float(nU+nL)
+		print("skewU",skewU)
+		print("skewL",skewL)
 
 
 		self.C = float(uSet)
-		self.U = uSet + skewU * math.sqrt(-2*sx/nU*math.log(math.pow(10,-20)))
-		self.L = uSet - skewL * math.sqrt(-2*sx/nL*math.log(math.pow(10,-20)))
+		self.U = uSet + skewU * math.sqrt((-2)*(sx/nU)*math.log( (math.pow(10,-20))  ) )
+		self.L = uSet - skewL * math.sqrt((-2)*(sx/nL)*math.log( (math.pow(10,-20))  ) )
 	
 	def fitY(self, Y):
 		collection = Y
@@ -62,16 +64,16 @@ class Arguments:
 
 
 		self.C = float(uSet)
-		self.U = uSet + skewU * math.sqrt(-2*sx/nU*math.log(math.pow(10,-20)))
-		self.L = uSet - skewL * math.sqrt(-2*sx/nL*math.log(math.pow(10,-20)))
+		self.U = uSet + skewU * math.sqrt((-2)*(sx/nU)*math.log((math.pow(10,-20))))
+		self.L = uSet - skewL * math.sqrt((-2)*(sx/nL)*math.log((math.pow(10,-20))))
 
 	def calculate(self, x):
 		ret = 0
-		print("centro", self.C)
+		# print("centro", self.C)
 		if(self.L <= x and x <= self.C):
 			ret = (x-self.L)/(self.C - self.L)
-			print("if1", ret)
+			# print("if1", ret)
 		elif(self.C < x and x <= self.U):
 			ret = (self.U - x)/(self.U - self.C)
-			print("if2", ret)
+			# print("if2", ret)
 		return ret
