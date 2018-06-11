@@ -111,8 +111,8 @@ def probabilityCalculus( data , probFuzzyArgs):
 		pattern, target = line[0], line[1]
 		sizePattern = len(pattern)
 		for index in range(sizePattern):
-			# print( "Index", index)
 			fuzzy = searchValue(pattern[index], probFuzzyArgs, index)
+			# print( "Index", index)
 			# print("Lower Bound", fuzzy.L)
 			# print("Center", fuzzy.C)
 			# print("Upper Bound", fuzzy.U)
@@ -152,39 +152,45 @@ def alphaCut(patternSet, targetSet, probabilities, alpha):
 
 def path():
 	print("START")
-	filenames  = ["test.csv"]
+	filenames  = ["servo.csv"]
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
-		possibleDataBaseValues = getPossibleValues(db_set)
+		train_set = db_set #usando todo banco de dados para treinamento
+		train_target = db_target
+
+		possibleDataBaseValues = getPossibleValues(train_set)
 		# print( possibleDataBaseValues )
 
 		cobMat = makeCOBmat(possibleDataBaseValues)
 		# for i in deepcopy(cobMat):
 		# 	print (i)
 
-		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, db_set, db_target )
+		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, train_set, train_target )
 		#print (fpfX, len(fpfX), len(possibleDataBaseValues))
 		#print (fpfY)
 
-		virtualValues = makeVirtualValues( fpfY, m = 5)
-		# print(virtualValues)
+		# PAPER: m = 100%, 200%, 300%, 400% e 500% relativo ao tamanho do conjunto de treinamento
+		sizesOfM=[1,2,3,4,5]
+		for sizeM in sizesOfM:
+			virtualValues = makeVirtualValues( fpfY, m = sizeM*train_set.shape[0])
+			# print(virtualValues)
 
-		rawData = combine(cobMat,virtualValues)
+			rawData = combine(deepcopy(cobMat),virtualValues)
 
-		# for i in deepcopy(rawData):
-		# 	print (i)
+			# for i in deepcopy(rawData):
+			# 	print (i)
 
-		rawDataProb = probabilityCalculus(rawData, fpfX)
-		
-		df = pd.DataFrame(rawDataProb)
-		print ("RAW\n",df.values)
-		print("------------")
-		sizeDf = df.shape[1]
-		patternSet = df.iloc[:,0:sizeDf-2]
-		targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
-		probabilities = df.iloc[:,sizeDf-1:sizeDf]
+			rawDataProb = probabilityCalculus(deepcopy(rawData), fpfX)
+			
+			df = pd.DataFrame(rawDataProb)
+			# print ("RAW\n",df.values)
+			# print("------------")
+			sizeDf = df.shape[1]
+			patternSet = df.iloc[:,0:sizeDf-2]
+			targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
+			probabilities = df.iloc[:,sizeDf-1:sizeDf]
 
-		newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.4)
-		print(newPattern,"\n",newTargets)
+			newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.7)
+			print(newPattern,newTargets)
 
 path()
