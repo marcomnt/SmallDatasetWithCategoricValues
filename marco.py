@@ -108,7 +108,15 @@ def makeVirtualValues( probFuzzyArgs , m):
 			
 
 
+def alphaCut(patternSet, targetSet, probabilities, alpha):
+	
+	indexes = []
+	for i in range(len(probabilities)):
+		if probabilities[i] >= alpha:
+			indexes.append(i)
 
+	return (patternSet[indexes,:],targetSet[indexes])
+	
 def path():
 	print("START")
 	filenames  = ["test.csv"]
