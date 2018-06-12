@@ -1,6 +1,7 @@
 from random import uniform
 import numpy as np
 import pandas as pd
+from sklearn.svm import SVR
 
 def mega_trend_diffusion(df, variance):
     _max = df.max().values[-1]
@@ -26,18 +27,32 @@ def possibility_assessment_mechanism(threshold, mf):
     while y <= threshold:
         vx = uniform(mf['L'], mf['U'])
         y = membership_function(vx, mf['L'], mf['U'], mf['u_set'])
+        threshold = uniform(0.0,1.0)
     return vx
+
+def mean_absolute_percentage_error(y_true, y_pred): 
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
 def main():
     # df = pd.read_csv('datasets/automobile.data')
     # categorical_attributes_columns = [2, 3, 4, 5, 6, 7, 8, 14, 15, 17]
-    df = pd.read_csv('../datasets/test.csv')
-    categorical_attributes_columns = [0, 1]
+    complete_df = pd.read_csv('test.csv')
+    
+    categorical_attributes_columns = [0,1]
     COB = []
     mtd_dict = {}
     pam_threshold = 0.7
     m = 10
-    alpha = 0.5
+    alpha = 0.7
+
+    # size = len(complete_df)
+    # trainLimit = math.floor(size*0.1)
+
+    # df = complete_df[0:trainLimit]
+    # test = complete_df[trainLimit:size]
+
+    df = complete_df
+    test = complete_df
 
     """Fuzzy relation extraction"""
     for i, attribute_column in enumerate(categorical_attributes_columns):
@@ -86,10 +101,44 @@ def main():
         COB_possibility_values.update({i: possibilities})
 
     """Alpha cut"""
+    newDB_pattern = []
+    newDB_target = []
     for i in range(len(COB)):
         indices = np.nonzero(np.array(COB_possibility_values[i]) > alpha)[0]
         for idx in indices:
-            print (COB[i], COB_virtual_samples[i][idx])
+            # print (type(COB[i]), type(COB_virtual_samples[i][idx]))
+            newDB_pattern.append(COB[i].tolist())
+            newDB_target.append(COB_virtual_samples[i][idx].tolist()[0])
+
+    """concatenate databases"""
+    attribute_names = df.axes[1]
+    target_name= attribute_names[len(attribute_names)-1]
+    df_target = df[target_name].values #take the last colums
+    df_pattern = df.drop(target_name,axis=1).values #drop the last column
+
+    db_pattern = np.concatenate((df_pattern, newDB_pattern))
+    db_target  = np.concatenate((df_target, newDB_target))
+
+    """SVR"""
+    print("\nPatterns:\n",db_pattern)
+    print("\nTargets:\n",db_target)
+    print("\n")
+
+    svr = SVR()
+    svr.fit(db_pattern,db_target)
+
+    """Separate target and patterns from test dataset"""
+
+    test_target= test[target_name].values
+    test_pattern = test.drop(target_name,axis=1).values
+
+    """predict target SVR"""
+
+    predictions = svr.predict(test_pattern)
+
+    """calculate MAPA"""
+    mapej = mean_absolute_percentage_error(test_target,predictions)
+    print("MAPEJ ",mapej)
 
 if __name__ == '__main__':
     main()

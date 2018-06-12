@@ -6,6 +6,8 @@ import numpy as np
 import itertools
 import Arguments
 import random
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
 
 def unWrapper (filename):
 	#opens  arff files and transform to dataFrame
@@ -62,14 +64,20 @@ def makeFuzzyProbabilisticFunction(possibleDataBaseValues, patternSet, targetSet
 	#print("df",possibleDataBaseValuesDataFrame)
 	possibleDataBaseValuesDataFrame.columns = patternSet.axes[1]
 	#print("ndf",possibleDataBaseValuesDataFrame)
-
 	for label in possibleDataBaseValuesDataFrame.axes[1]:
 		labelFPF = []
-		for val in possibleDataBaseValuesDataFrame[label].values[0]:
-			args = Arguments.Arguments()
-			args.fitX(label,val,patternSet,targetSet)
-			labelFPF.append( args )
-		fpfX.append(labelFPF)
+		if(type(possibleDataBaseValuesDataFrame[label].values[0]) != list):
+			for val in possibleDataBaseValuesDataFrame[label].values:
+				args = Arguments.Arguments()
+				args.fitX(label,val,patternSet,targetSet)
+				labelFPF.append( args )
+			fpfX.append(labelFPF)
+		else:
+			for val in possibleDataBaseValuesDataFrame[label].values[0]:
+				args = Arguments.Arguments()
+				args.fitX(label,val,patternSet,targetSet)
+				labelFPF.append( args )
+			fpfX.append(labelFPF)
 	#print("makeFPF",fpf)
 
 	fpfY = Arguments.Arguments()
@@ -150,53 +158,87 @@ def alphaCut(patternSet, targetSet, probabilities, alpha):
 
 	return (patternSet[indexes,:],targetSet[indexes])
 
+def mean_absolute_percentage_error(y_true, y_pred): 
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
 def path():
 	# print("START")
-	filenames  = ['../datasets/test.csv']
+	filenames  = ['servo.csv']
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
-		train_set = db_set #usando todo banco de dados para treinamento
-		train_target = db_target
-
-		possibleDataBaseValues = getPossibleValues(train_set)
-		# print( possibleDataBaseValues )
-
-		cobMat = makeCOBmat(possibleDataBaseValues)
-		# for i in deepcopy(cobMat):
-		# 	print (i)
-
-		fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, train_set, train_target )
-		#print (fpfX, len(fpfX), len(possibleDataBaseValues))
-		#print (fpfY)
-
-		# for Xi in fpfX:
-		# 	print ("Xi")
-		# 	print("Valor |          L          |         uSet         |          U          |     MFvalue    ")
-		# 	for args in Xi:
-		# 		print(args.value, "    |", args.L, "|", args.C, "|", args.U, "|", args.calculate(0.8))
-
+		k_fold = KFold(n_splits = 10, shuffle=True)
+		print("START")
 		# PAPER: m = 100%, 200%, 300%, 400% e 500% relativo ao tamanho do conjunto de treinamento
 		sizesOfM=[1,2,3,4,5]
 		for sizeM in sizesOfM:
-			virtualValues = makeVirtualValues( fpfY, m = sizeM*train_set.shape[0])
-			# print(virtualValues)
+			MAPE=[]
+			for test_index, train_index in k_fold.split(db_set):
 
-			rawData = combine(deepcopy(cobMat),virtualValues)
+				train_set = db_set.iloc[train_index]
+				train_target = db_target.iloc [train_index]
 
-			# for i in deepcopy(rawData):
-			# 	print (i)
+				test_set = db_set.iloc[train_index]
+				test_target = db_target.iloc[train_index]
 
-			rawDataProb = probabilityCalculus(deepcopy(rawData), fpfX)
+				# print("TRAIN SET", train_set)
+				# print("TRAIN TARGET", train_target)
+				
+				possibleDataBaseValues = getPossibleValues(train_set)
+				# print( possibleDataBaseValues )
+
+				cobMat = makeCOBmat(possibleDataBaseValues)
+				# for i in deepcopy(cobMat):
+				# 	print (i)
+
+				fpfX,fpfY = makeFuzzyProbabilisticFunction(possibleDataBaseValues, train_set, train_target )
+				#print (fpfX, len(fpfX), len(possibleDataBaseValues))
+				#print (fpfY)
+
+				# for Xi in fpfX:
+				# 	print ("Xi")
+				# 	print("Valor |          L          |         uSet         |          U          |     MFvalue    ")
+				# 	for args in Xi:
+				# 		print(args.value, "    |", args.L, "|", args.C, "|", args.U, "|", args.calculate(0.8))
+
 			
-			df = pd.DataFrame(rawDataProb)
-			# print ("RAW\n",df.values)
-			# print("------------")
-			sizeDf = df.shape[1]
-			patternSet = df.iloc[:,0:sizeDf-2]
-			targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
-			probabilities = df.iloc[:,sizeDf-1:sizeDf]
+				virtualValues = makeVirtualValues( fpfY, m = sizeM*train_set.shape[0])
+				# print(virtualValues)
 
-			newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.7)
-			print(newPattern,newTargets)
+				rawData = combine(deepcopy(cobMat),virtualValues)
+
+				# for i in deepcopy(rawData):
+				# 	print (i)
+
+				rawDataProb = probabilityCalculus(deepcopy(rawData), fpfX)
+				
+				df = pd.DataFrame(rawDataProb)
+				# print ("RAW\n",df.values)
+				# print("------------")
+				sizeDf = df.shape[1]
+				patternSet = df.iloc[:,0:sizeDf-2]
+				targetSet = df.iloc[:,sizeDf-2:sizeDf-1][sizeDf-2]
+				# print(targetSet, type(targetSet))
+				probabilities = df.iloc[:,sizeDf-1:sizeDf]
+
+				newPattern,newTargets = alphaCut(patternSet.values , targetSet.values, probabilities.values , alpha = 0.7)
+
+				# print(newPattern,newTargets)
+				# print(train_set.values,train_target.values)
+
+				full_db_pattern= np.concatenate((newPattern,train_set.values))
+				full_db_target = np.concatenate((newTargets,train_target.values))
+
+				"""SVR"""
+				svr = SVR()
+				svr.fit(full_db_pattern,full_db_target)
+
+				"""predict target SVR"""
+				predictions = svr.predict(test_set)
+				mapej = mean_absolute_percentage_error(test_target.values,predictions)
+				# print (mapej)
+				MAPE.append(mapej)
+			print("M: ",sizeM, " MAPE: ", np.mean(MAPE)," Variance:", np.var(MAPE,ddof=1))
+
+
 
 path()
