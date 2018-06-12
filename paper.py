@@ -151,8 +151,8 @@ def alphaCut(patternSet, targetSet, probabilities, alpha):
 	return (patternSet[indexes,:],targetSet[indexes])
 
 def path():
-	print("START")
-	filenames  = ["servo.csv"]
+	# print("START")
+	filenames  = ["paperTest.csv"]
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
 		train_set = db_set #usando todo banco de dados para treinamento
@@ -169,28 +169,34 @@ def path():
 		#print (fpfX, len(fpfX), len(possibleDataBaseValues))
 		#print (fpfY)
 
-		# PAPER: m = 100%, 200%, 300%, 400% e 500% relativo ao tamanho do conjunto de treinamento
-		sizesOfM=[1,2,3,4,5]
-		for sizeM in sizesOfM:
-			virtualValues = makeVirtualValues( fpfY, m = sizeM*train_set.shape[0])
-			# print(virtualValues)
+		for Xi in fpfX:
+			print ("Xi")
+			print("Valor |          L          |         uSet         |          U          |     MFvalue    ")
+			for args in Xi:
+				print(args.value, "    |", args.L, "|", args.C, "|", args.U, "|", args.calculate(0.8))
 
-			rawData = combine(deepcopy(cobMat),virtualValues)
+		# # PAPER: m = 100%, 200%, 300%, 400% e 500% relativo ao tamanho do conjunto de treinamento
+		# sizesOfM=[1,2,3,4,5]
+		# for sizeM in sizesOfM:
+		# 	virtualValues = makeVirtualValues( fpfY, m = sizeM*train_set.shape[0])
+		# 	# print(virtualValues)
 
-			# for i in deepcopy(rawData):
-			# 	print (i)
+		# 	rawData = combine(deepcopy(cobMat),virtualValues)
 
-			rawDataProb = probabilityCalculus(deepcopy(rawData), fpfX)
+		# 	# for i in deepcopy(rawData):
+		# 	# 	print (i)
+
+		# 	rawDataProb = probabilityCalculus(deepcopy(rawData), fpfX)
 			
-			df = pd.DataFrame(rawDataProb)
-			# print ("RAW\n",df.values)
-			# print("------------")
-			sizeDf = df.shape[1]
-			patternSet = df.iloc[:,0:sizeDf-2]
-			targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
-			probabilities = df.iloc[:,sizeDf-1:sizeDf]
+		# 	df = pd.DataFrame(rawDataProb)
+		# 	# print ("RAW\n",df.values)
+		# 	# print("------------")
+		# 	sizeDf = df.shape[1]
+		# 	patternSet = df.iloc[:,0:sizeDf-2]
+		# 	targetSet = df.iloc[:,sizeDf-2:sizeDf-1]
+		# 	probabilities = df.iloc[:,sizeDf-1:sizeDf]
 
-			newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.7)
-			print(newPattern,newTargets)
+		# 	newPattern,newTargets = alphaCut(patternSet.values , targetSet.values , probabilities.values , alpha = 0.7)
+		# 	print(newPattern,newTargets)
 
 path()
