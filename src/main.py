@@ -89,7 +89,7 @@ def main():
     for i in range(len(COB)):
         indices = np.nonzero(np.array(COB_possibility_values[i]) > alpha)[0]
         for idx in indices:
-            print COB[i], COB_virtual_samples[i][idx]
+            print (COB[i], COB_virtual_samples[i][idx])
 
 if __name__ == '__main__':
     main()
