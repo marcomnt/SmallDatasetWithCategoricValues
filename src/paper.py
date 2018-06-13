@@ -7,6 +7,7 @@ import itertools
 import Arguments
 import random
 from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor as MLP
 from sklearn.model_selection import KFold
 
 def unWrapper (filename):
@@ -33,8 +34,8 @@ def unWrapper (filename):
 		dbTargets = dataset[ target_name ]
 
 		dbPatterns = dataset.drop( target_name ,axis=1)
-		dbPatterns = dbPatterns.drop(attribute_names[0] ,axis=1)
-		dbPatterns = dbPatterns.drop(attribute_names[1] ,axis=1)
+		# dbPatterns = dbPatterns.drop(attribute_names[0] ,axis=1)
+		# dbPatterns = dbPatterns.drop(attribute_names[1] ,axis=1)
 		#print(dbPatterns)
 	else:
 		dbTargets = dataset[ target_name ]
@@ -159,11 +160,34 @@ def alphaCut(patternSet, targetSet, probabilities, alpha):
 	return (patternSet[indexes,:],targetSet[indexes])
 
 def mean_absolute_percentage_error(y_true, y_pred): 
-    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+	vector = np.abs((y_true - y_pred) / y_true)
+	return (np.mean(vector) * 100, np.std(vector,ddof=1))
+
+def takeBest(lista):
+	best = (np.inf,np.inf)
+	for i in lista:
+		if(i[0]<best[0]):
+			best = i
+		if(i[0]==best[0]):
+			if(i[1]<best[1]):
+				best = i
+
+	return best
+
+def takeWorst(lista):
+	worst = (-np.inf,-np.inf)
+	for i in lista:
+		if(i[0]>worst[0]):
+			worst = i
+		if(i[0]==worst[0]):
+			if(i[1]>worst[1]):
+				worst = i
+
+	return worst
 
 def path():
 	# print("START")
-	filenames  = ['servo.csv']
+	filenames  = ["servo2.csv"]
 	for filename in filenames:
 		db_set,db_target = unWrapper(filename)
 		k_fold = KFold(n_splits = 10, shuffle=True)
@@ -171,7 +195,10 @@ def path():
 		# PAPER: m = 100%, 200%, 300%, 400% e 500% relativo ao tamanho do conjunto de treinamento
 		sizesOfM=[1,2,3,4,5]
 		for sizeM in sizesOfM:
-			MAPE=[]
+			MAPEsvr=[]
+			MAPEmlp =[]
+			MAPEallSVR=[]
+			MAPEallMLP =[]
 			for test_index, train_index in k_fold.split(db_set):
 
 				train_set = db_set.iloc[train_index]
@@ -232,13 +259,39 @@ def path():
 				svr = SVR()
 				svr.fit(full_db_pattern,full_db_target)
 
+				""" MLP """
+				mlp = MLP(max_iter=2000)
+				mlp.fit(full_db_pattern,full_db_target)
+
 				"""predict target SVR"""
-				predictions = svr.predict(test_set)
-				mapej = mean_absolute_percentage_error(test_target.values,predictions)
-				# print (mapej)
-				MAPE.append(mapej)
-			print("M: ",sizeM, " MAPE: ", np.mean(MAPE)," Variance:", np.var(MAPE,ddof=1))
+				predictionsSVR = svr.predict(test_set)
+				mapejSVR = mean_absolute_percentage_error(test_target.values,predictionsSVR)
+				#print (mapejSVR)
+				MAPEsvr.append(mapejSVR)
+				MAPEallSVR.append(mapejSVR[0])
 
+				"""predict target MLP"""
+				predictionsMLP = mlp.predict(test_set)
+				mapejMLP = mean_absolute_percentage_error(test_target.values,predictionsMLP)
+				#print (mapejMLP)
+				MAPEmlp.append(mapejMLP)
+				MAPEallMLP.append(mapejMLP[0])
 
+			print("\nFile: "+ filename+"\n" )
+			MAPEBest = takeBest(MAPEsvr)
+			MAPEWorst = takeWorst(MAPEsvr)
+			print("------------------------------SVR--------------------------------------")
+			print("M: ",sizeM, " MAPE: ", MAPEBest[0], "Standard Deviation:", MAPEBest[1], "BEST")
+			print("M: ",sizeM, " MAPE: ", np.mean(MAPEallSVR)," Standard Deviation:", np.std(MAPEallSVR,ddof=1), "MEAN")
+			print("M: ",sizeM, " MAPE: ", MAPEWorst[0], "Standard Deviation:", MAPEWorst[1], "WORSE")
+			print("-----------------------------------------------------------------------")
+
+			MAPEBest = takeBest(MAPEmlp)
+			MAPEWorst = takeWorst(MAPEmlp)
+			print("--------------------------------MLP------------------------------------")
+			print("M: ",sizeM, " MAPE: ", MAPEBest[0], "Standard Deviation:", MAPEBest[1], "BEST")
+			print("M: ",sizeM, " MAPE: ", np.mean(MAPEallMLP)," Standard Deviation:", np.std(MAPEallMLP,ddof=1), "MEAN")
+			print("M: ",sizeM, " MAPE: ", MAPEWorst[0], "Standard Deviation:", MAPEWorst[1], "WORSE")
+			print("-----------------------------------------------------------------------")
 
 path()
